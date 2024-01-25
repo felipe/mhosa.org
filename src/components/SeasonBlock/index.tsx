@@ -1,3 +1,4 @@
+import Link from "next/link";
 
 const season = {
     name: 'Winter 2024',
@@ -7,38 +8,47 @@ const season = {
             weight: 300,
             standings: [
                 {
+                    driverId: null,
                     points: 19,
                     driver: `Mike Stewart`
                 },
                 {
+                    driverId: null,
                     points: 16,
                     driver: `Scott Johnson`
                 },
                 {
+                    driverId: null,
                     points: 16,
                     driver: `Graham Dillon`
                 },
                 {
+                    driverId: null,
                     points: 11,
                     driver: `Don Reimer`
                 },
                 {
+                    driverId: null,
                     points: 11,
                     driver: `John Redfern`
                 },
                 {
+                    driverId: null,
                     points: 10,
                     driver: `Nathaniel McInturff`
                 },
                 {
+                    driverId: null,
                     points: 9,
                     driver: `Dan Pierce`
                 },
                 {
+                    driverId: null,
                     points: 6,
                     driver: `Brett Ginsberg​`
                 },
                 {
+                    driverId: null,
                     points: 0,
                     driver: `Alan Wolcott*`
                 },
@@ -49,26 +59,32 @@ const season = {
             weight: 100,
             standings: [
                 {
+                    driverId: null,
                     points: 19,
                     driver: `Rick Dillon`
                 },
                 {
+                    driverId: null,
                     points: 19,
                     driver: `Dave Alexander`
                 },
                 {
+                    driverId: null,
                     points: 15,
                     driver: `Matt Kabeiseman`
                 },
                 {
+                    driverId: null,
                     points: 13,
                     driver: `Dave Lombardi`
                 },
                 {
+                    driverId: `felipe-oduardo`,
                     points: 11,
                     driver: `Feli.pe Oduardo`
                 },
                 {
+                    driverId: null,
                     points: 8,
                     driver: `Bob Maddox`
                 },
@@ -79,38 +95,47 @@ const season = {
             weight: '50',
             standings: [
                 {
+                    driverId: null,
                     points: 18,
                     driver: `John Peterson`
                 },
                 {
+                    driverId: null,
                     points: 17,
                     driver: `DJ Reimer`
                 },
                 {
+                    driverId: null,
                     points: 14,
                     driver: `Patrick Smith`
                 },
                 {
+                    driverId: null,
                     points: 10,
                     driver: `Skylar Robinson`
                 },
                 {
+                    driverId: null,
                     points: 7,
                     driver: `Dan Reynolds`
                 },
                 {
+                    driverId: null,
                     points: 7,
                     driver: `Eric Lorenz`
                 },
                 {
+                    driverId: null,
                     points: 6,
                     driver: `Justin Robinson`
                 },
                 {
+                    driverId: null,
                     points: 6,
                     driver: `Kyle Root`
                 },
                 {
+                    driverId: null,
                     points: 5,
                     driver: `Dave Hadley`
                 },
@@ -183,7 +208,7 @@ export default function SeasonBlock() {
                             {d.standings.map((s, i) => {
                                 position.add(s.points);
                                 return <div key={i} className="flex flex-row justify-between">
-                                    <span><strong>{Array.from(position).indexOf(s.points) + 1}.</strong> {s.driver}</span>
+                                    <span><strong>{Array.from(position).indexOf(s.points) + 1}.</strong> <Link href={s.driverId ? `/driver/` + s.driverId : `#`}>{s.driver}</Link></span>
                                     <span>{s.points}</span>
                                 </div>
                             })}

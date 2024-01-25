@@ -169,11 +169,11 @@ export default function SeasonBlock() {
             </div>
         </div>
         <div className="z-10 w-full flex-row font-mono text-sm lg:flex justify-center">
-            <div className="flex w-full max-w-5xl items-center">
+            <div className="flex w-full max-w-5xl items-center flex-col lg:flex-row">
                 {season.divisions.map((d, i) => {
                     const position = new Set();
 
-                    return <div key={i} className={`flex-1 self-stretch justify-between items-center p-3 bg-orange-${d.weight} text-yellow-700`}>
+                    return <div key={i} className={`basis-full md:basis-1/3 self-stretch justify-between items-center p-3 bg-orange-${d.weight} text-yellow-700`}>
                         <h2 className="text-red-900 p-3"><strong>{d.name}</strong></h2>
                         <div className="flex flex-col">
                             <div className="flex flex-row justify-between">
@@ -191,12 +191,12 @@ export default function SeasonBlock() {
                     </div>
                 })}
             </div>
-            </div>
+        </div>
         <div className="z-10 w-full flex-row font-mono text-sm lg:flex justify-center">
             <div className="flex w-full max-w-5xl flex-wrap items-center">
                 {season.schedule.map((s, i) => {
-                    return <div key={i} className={`basis-1/4 self-stretch justify-between items-center p-3 bg-indigo-${i}00`}>
-                        <h2 className={`text-zinc-${8-i}00 p-3`}><strong>{s.week}</strong></h2>
+                    return <div key={i} className={`basis-1/2 md:basis-1/4 self-stretch justify-between items-center p-3 bg-indigo-${i}00`}>
+                        <h2 className={`text-zinc-${8 - i}00 p-3`}><strong>{s.week}</strong></h2>
                         <div className="flex flex-col">
                             <div className="flex flex-row justify-between">
                             </div>

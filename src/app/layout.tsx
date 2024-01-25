@@ -17,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`bg-red-50 ${quicksand.className}`}>
+      <body className={`bg-stone-300 ${quicksand.className}`}>
         <SiteHeader />
         {children}
       </body>

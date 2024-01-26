@@ -28,7 +28,7 @@ const season = {
                     driver: `Don Reimer`
                 },
                 {
-                    driverId: null,
+                    driverId: `john-redfern`,
                     points: 11,
                     driver: `John Redfern`
                 },
@@ -64,7 +64,7 @@ const season = {
                     driver: `Rick Dillon`
                 },
                 {
-                    driverId: null,
+                    driverId: `dave-alexander`,
                     points: 19,
                     driver: `Dave Alexander`
                 },

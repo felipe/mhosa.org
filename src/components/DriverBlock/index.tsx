@@ -23,7 +23,7 @@ export default function DriverBlock({ driver }: { driver: any }) {
             </div>
             <div className="z-10 w-full flex-row font-mono text-sm lg:flex justify-center">
                 <div className="flex w-full max-w-5xl flex-wrap items-center">
-                    {driver.results.map((s, i) => {
+                    {driver.results.map((s: any, i: any) => {
                         return <div key={i} className={`basis-1/2 md:basis-1/4 self-stretch justify-between items-center p-3 bg-indigo-${i}00`}>
                             <h2 className={`text-zinc-${8 - i}00 p-3`}><strong>{s.track}</strong></h2>
                             <div className="flex flex-col">

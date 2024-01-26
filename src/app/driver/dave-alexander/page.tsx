@@ -1,10 +1,10 @@
 import DriverBlock from "@/components/DriverBlock";
 
 const driver = {
-    name: `Felipe Oduardo`,
-    location: `🇵🇷`,
+    name: `Dave Alexander`,
+    location: `🇺🇸`,
     division: `Lite`,
-    color: `bg-blue-900`,
+    color: `bg-yellow-400`,
     results: [
         {
             week: 1,

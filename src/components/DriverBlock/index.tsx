@@ -1,8 +1,13 @@
 import Image from "next/image";
 
 import controller from "@/public/controller@2x.png";
+import { fetchDriver } from "@/client/notion";
+import { notFound } from "next/navigation";
 
-export default function DriverBlock({ driver }: { driver: any }) {
+export default async function DriverBlock({slug}: {slug: string}) {
+    const driver = (await fetchDriver(slug))
+    if (!driver) notFound();
+
     return (
         <main className="flex flex-col items-center justify-between">
             <div className="z-10 w-full flex-row font-mono text-sm lg:flex justify-center">

@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import { fetchCurrentStandings } from "@/client/notion";
 import DriverBlock from "@/components/DriverBlock";
 

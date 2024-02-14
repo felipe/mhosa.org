@@ -1,3 +1,5 @@
+export const runtime = 'edge';
+
 import DriverBlock from "@/components/DriverBlock";
 import ResultsBlock from "@/components/ResultsBlock";
 

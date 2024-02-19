@@ -7,10 +7,26 @@ import {
     PageObjectResponse,
 } from "@notionhq/client/build/src/api-endpoints";
 
-const DriversTable = ``
+const DriversTable = '🎮 Drivers'
 const TracksTable = `🎢 Tracks`
 const SeasonsTable = `☑️ Season`
 const DivisionsTable = `⏫ Divisions`
+
+const proDivisions = [
+    'a94d52c3-1e9d-4007-9fd4-7ed2d5b660f5'
+]
+
+const intermediateDivisions = [
+    'c12bb65c-9359-43c0-ba48-869b52d50431'
+]
+
+const beginnerDivisions = [
+    'f2c8e096-8531-452e-841a-f8cea9c453da'
+]
+
+const padNumber = (num: number) => {
+    return (String(0).repeat(3 - String(num).length) + num)
+}
 
 export const notion = new Client({
     auth: process.env.NOTION_TOKEN,
@@ -35,6 +51,7 @@ const colorMatcher = (color: string) => {
 
 type Driver = {
     name: string,
+    slug: string,
     color: string,
     nickname: string,
     location: string,
@@ -53,7 +70,7 @@ const cleanRaceResults = async (races: any) => {
             ...race.properties,
             division: division.properties.Name.title[0].plain_text,
             season: season.properties.Name.title[0].plain_text,
-            track:  track.properties.Name.title[0].plain_text,
+            track: track.properties.Name.title[0].plain_text,
             track_slug: track.properties.Name.title[0].plain_text.toLowerCase().replaceAll(' ', '-'),
             heat: race.properties.Heat.select.name,
         }
@@ -99,16 +116,15 @@ export const fetchDriver = async (slug: string) => {
             },
         }
     })).results[0]
-    // console.log(driver)
 
-    const raceResults = await notion.databases.query({
+    const raceResults = driver ? await notion.databases.query({
         database_id: process.env.NOTION_RESULTS_DATABASE!, filter: {
             property: "🎮 Drivers",
             relation: {
                 contains: driver.id,
             },
         }, sorts: [{ timestamp: 'created_time', direction: 'descending' }]
-    })
+    }) : { results: [] }
 
     const results = await cleanRaceResults(raceResults)
 
@@ -133,12 +149,27 @@ export const fetchDriver = async (slug: string) => {
 
     return driver ? {
         name: (driver as any).properties.Name.title[0].plain_text,
+        slug: (driver as any).properties.Name.title[0].plain_text.toLowerCase().replaceAll(' ', '-'),
         color: colorMatcher((driver as any).properties.color.select?.name || 'green'),
-        nickname: (driver as any).properties.Nickname.rich_text[0].text.content,
+        nickname: (driver as any).properties.Nickname.rich_text[0] ? (driver as any).properties.Nickname.rich_text[0].text.content : '',
         location: '', //(driver as any).properties.Location.rich_text[0].text.content,
         division: results[0].division,
         results,
         tracks
+    } as Driver : null
+};
+
+export const fetchDriverById = async (driverId: string) => {
+    const driver = await (await notion.databases.query({
+        database_id: process.env.NOTION_DRIVER_DATABASE!
+    })).results.find((driver: any) => driver.id === driverId)
+
+    return driver ? {
+        name: (driver as any).properties.Name.title[0].plain_text,
+        slug: (driver as any).properties.Name.title[0].plain_text.toLowerCase().replaceAll(' ', '-'),
+        color: colorMatcher((driver as any).properties.color.select?.name || 'green'),
+        nickname: (driver as any).properties.Nickname.rich_text[0] ? (driver as any).properties.Nickname.rich_text[0].text.content : '',
+        location: '', //(driver as any).properties.Location.rich_text[0].text.content,
     } as Driver : null
 };
 
@@ -198,8 +229,137 @@ export const fetchPageBySlug = React.cache((slug: string) => {
         .then((res) => res.results[0] as PageObjectResponse | undefined);
 });
 
+const calculateStandings = async (division: any, results: any) => {
+    const rawDrivers = results.filter((result: any) => division.includes(result.properties[DivisionsTable].relation[0].id))
+    // const intermediate = rawResults.filter((result: any) => result.properties[DivisionsTable].relation[0].id === 'intermediate')
+
+    const drivers = new Set()
+
+    rawDrivers.forEach((result: any) => {
+        drivers.add(result.properties[DriversTable].relation[0].id)
+        // console.log(result.properties[DriversTable].relation[0].id, `${result.properties['Total Laps'].number}.${padNumber(result.properties['Final Sections'].number)}`)
+    })
+
+    // console.log(drivers)
+
+    const standings = await Promise.all(Array.from(drivers).map(async (driverId: any) => {
+        const driver = await fetchDriverById(driverId) as Driver
+
+        return {
+            driver: driver.name,
+            slug: driver.slug,
+            points: 0
+        }
+    }))
+
+    return standings
+}
+
 export const fetchPageBlocks = React.cache((pageId: string) => {
     return notion.blocks.children
         .list({ block_id: pageId })
         .then((res) => res.results as BlockObjectResponse[]);
 });
+
+export const getSeason = async () => {
+    const season = await (await notion.databases.query({
+        database_id: process.env.NOTION_SEASON_DATABASE!
+    })).results.sort().reverse()
+
+    const rawSchedule = await (await notion.databases.query({
+        database_id: process.env.NOTION_SCHEDULE_DATABASE!,
+        filter: {
+            property: SeasonsTable,
+            relation: {
+                contains: season[0].id,
+            },
+        },
+        sorts: [{ property: 'Date', direction: 'ascending' }]
+    })).results
+
+    // console.log((schedule[0] as any).properties.Date.date.start)
+    // console.log((await fetchTrackById((schedule[0] as any).properties[TracksTable].relation[0].id) as any).properties.Name.title[0].plain_text)
+    // const seasons = await notion.databases.query({ database_id: process.env.NOTION_SEASON_DATABASE! })
+    // const x = seasons.results.find((season: any) => new Date(season.properties.Start.date.start) < new Date() && new Date(season.properties.End.date.start) > new Date())
+    // console.log(schedule)
+
+
+    //                 {
+    //                     driverId: null,
+    //                     points: 18,
+    //                     driver: `John Peterson`
+    //                 }
+
+    const rawResults = await (await notion.databases.query({
+        database_id: process.env.NOTION_RESULTS_DATABASE!,
+        filter: {
+            property: SeasonsTable,
+            relation: {
+                contains: season[0].id,
+            },
+        }
+    })).results
+
+    // console.log(rawResults.map((res: any) => console.log(res.properties[DivisionsTable].relation[0].id)))
+
+    // const rawProDrivers = rawResults.filter((result: any) => proDivisions.includes(result.properties[DivisionsTable].relation[0].id))
+    // // const intermediate = rawResults.filter((result: any) => result.properties[DivisionsTable].relation[0].id === 'intermediate')
+
+    // // console.log(proDrivers)
+
+    // const proDrivers = new Set()
+
+    // rawProDrivers.forEach((result: any) => {
+    //     proDrivers.add(result.properties[DriversTable].relation[0].id)
+    //     // console.log(result.properties[DriversTable].relation[0].id, `${result.properties['Total Laps'].number}.${padNumber(result.properties['Final Sections'].number)}`)
+    // })
+
+    // const proStandings = await Promise.all(Array.from(proDrivers).map(async (driverId: any) => {
+    //     const driver = await fetchDriverById(driverId) as Driver
+    //     return {
+    //         driver: driver.name,
+    //         slug: driver.slug,
+    //         points: 0
+    //     }
+    // }))
+
+    const proStandings = calculateStandings(proDivisions, rawResults)
+    const intermediateStandings = calculateStandings(intermediateDivisions, rawResults)
+    const beginnerStandings = calculateStandings(beginnerDivisions, rawResults)
+
+    const pro = {
+        name: 'Premier',
+        weight: 300,
+        standings: await proStandings
+    }
+
+    const intermediate = {
+        name: 'Lite',
+        weight: 100,
+        standings: await intermediateStandings
+    }
+
+    const beginner = {
+        name: 'Newcomers',
+        weight: 50,
+        standings: await beginnerStandings
+    }
+
+    const divisions = [
+        pro,
+        intermediate,
+        beginner
+    ]
+
+    const schedule = await Promise.all(rawSchedule.map(async (s: any, i: number) => ({
+        race: i + 1,
+        date: (s as any).properties.Date.date.start,
+        track: (await fetchTrackById((s as any).properties[TracksTable].relation[0].id) as any).properties.Name.title[0].plain_text
+    })))
+
+    return {
+        name: (season[0] as any).properties.Name.title[0].plain_text || '',
+        divisions,
+        schedule
+    }
+}

@@ -6,7 +6,7 @@ const buildTrackHeaders = (result: any): Set<string> => {
     const response = new Set<string>()
 
     // headers.map(() => {
-        response.add('Season')
+        // response.add('Season')
         response.add('Heat')
         response.add('Red')
         response.add('White')
@@ -30,7 +30,7 @@ export default async function DriverBlock({ slug, track }: { slug: string, track
 
     return (
         <div className="flex flex-col items-center justify-between">
-            <div className="flex w-full max-w-5xl flex-wrap items-center bg-white">
+            <div className="flex w-full max-w-5xl flex-wrap items-center justify-between bg-white">
                 <h2 className={`text-zinc-800 p-3`}><strong>{trackResults[0].track}</strong></h2>
             </div>
             <div className="z-10 w-full flex-row font-mono text-sm lg:flex justify-center">
@@ -38,7 +38,7 @@ export default async function DriverBlock({ slug, track }: { slug: string, track
                     {Array.from(trackHeaders).map((s: any, i: any) => {
                         return <div key={i} className={`${i === 0 ? `basis-1/6` : `flex-1`} flex-grow self-stretch justify-between items-center bg-white`}>
                             <div className={`p-3 bg-${s.toLowerCase()}-400`}>
-                                <h2 className={`text-zinc-500 p-1`}><strong>{s}</strong></h2>
+                                <h2 className={`text-zinc-500 p-1`}><strong>{s === 'Heat' ? trackResults[i].season : s}</strong></h2>
                                 <div className="flex flex-col">
                                     <div className="flex flex-row justify-between">
                                     </div>

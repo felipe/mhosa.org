@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import Link from "next/dist/client/link";
 
 export default async function DriverBlock({ slug }: { slug: string }) {
-    const driver = (await fetchDriver(slug))
+    const driver = await fetchDriver(slug)
     if (!driver) notFound();
 
     return (

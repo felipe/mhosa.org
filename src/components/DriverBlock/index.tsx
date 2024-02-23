@@ -11,25 +11,25 @@ export default async function DriverBlock({ slug }: { slug: string }) {
     return (
         <main className="flex flex-col items-center justify-between">
             <div className="z-10 w-full flex-row font-mono text-sm sm:flex justify-center">
-                <div className="flex w-full max-w-5xl items-center flex-col lg:flex-row">
-                    <div style={{ position: 'relative' }} className={`flex basis-full md:basis-1/4 aspect-square items-center ${driver.color || `bg-red-900`}`}>
+                <div className="flex w-full max-w-5xl max-h-45 items-center sm:flex-row flex-row-reverse">
+                    <div className={`basis-1/3 md:basis-1/4 aspect-square items-center ${driver.color || `bg-red-900`}`}>
                         <Image src={controller} className={`flex`} alt={`Controller`} />
                     </div>
-                    <div className="flex flex-col w-full lg:w-1/2 self-stretch grid content-between bg-lime-700 p-5">
+                    <div className="flex-grow flex-col self-stretch grid content-between bg-lime-700 p-5">
                         {driver.nickname ? <div className="self-start">
-                            <h1 className="self-start" style={{ fontSize: `2.5rem`, lineHeight: `2.5rem` }}>{driver.nickname}</h1>
-                            <h2 className="self-stretch self-start italic" >
+                            <h1 className="self-start text-3xl" >{driver.nickname}</h1>
+                            <h2 className="self-stretch text-lg md:text-xl italic" >
                                 {driver.name}
                             </h2>
-                        </div> : <h1 className="self-stretch self-start" style={{ fontSize: `2.5rem`, lineHeight: `2.5rem` }}>
+                        </div> : <h1 className="self-stretch text-2xl">
                             {driver.name}
                         </h1>
                         }
-                        <p className="self-stretch self-start text-lg">{driver.location} {driver.division} Division</p>
+                        <p className="self-stretch text-md md:text-lg">{driver.location} {driver.division} Division</p>
                     </div>
-                    <div className={`basis-full md:basis-1/4 self-stretch justify-between items-center bg-lime-600`}>
+                    {/* <div className={`sm:hidden basis-full md:basis-1/4 self-stretch justify-between items-center bg-lime-600`}>
 
-                    </div>
+                    </div> */}
                 </div>
             </div>
             <div className="z-10 w-full flex-row font-mono text-sm lg:flex justify-center">

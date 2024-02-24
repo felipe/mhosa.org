@@ -1,4 +1,4 @@
-import { fetchDriver } from "@/client/notion";
+import { fetchDriverResults } from "@/client/notion";
 import { notFound } from "next/navigation";
 
 const buildTrackHeaders = (result: any): Set<string> => {
@@ -22,8 +22,10 @@ const buildTrackHeaders = (result: any): Set<string> => {
 }
 
 export default async function DriverBlock({ slug, track }: { slug: string, track: string }) {
-    const driver = (await fetchDriver(slug))
+    const driver = (await fetchDriverResults(slug, track))
     if (!driver) notFound();
+
+    // console.log(driver)
 
     const trackResults = driver.results.filter((r: any) => r.track_slug === track).sort((a: any, b: any) => Number(a.heat.replace('Heat ', '')) - Number(b.heat.replace('Heat ', '')))
     const trackHeaders: Set<string> = buildTrackHeaders(trackResults[0]);
@@ -36,7 +38,7 @@ export default async function DriverBlock({ slug, track }: { slug: string, track
             <div className="z-10 w-full flex-row font-mono text-sm lg:flex justify-center">
                 <div className="flex w-full max-w-5xl flex-wrap items-center">
                     {Array.from(trackHeaders).map((s: any, i: any) => {
-                        return <div key={i} className={`${i === 0 ? `basis-1/6` : `flex-1`} flex-grow self-stretch justify-between items-center bg-white`}>
+                        return <div key={i} className={/*${i === 0 ? `basis-1/6` : `flex-1`}*/` flex-1 flex-grow self-stretch justify-between items-center bg-white`}>
                             <div className={`p-3 bg-${s.toLowerCase()}-400`}>
                                 <div className="flex flex-col">
                                     <div className="flex flex-row justify-between">
@@ -52,7 +54,7 @@ export default async function DriverBlock({ slug, track }: { slug: string, track
                 {trackResults.map((r: any, i: any) => {
                     return <div key={i} className="flex w-full  flex-wrap items-center flex-row">
                         {Array.from(trackHeaders).map((s: any, k: any) => {
-                            return <div key={`${i}${k}`} className={`${k === 0 ? `basis-1/6` : `flex-1`} flex-grow self-stretch justify-between items-center bg-white`}>
+                            return <div key={`${i}${k}`} className={/*${i === 0 ? `basis-1/6` : `flex-1`}*/` flex-1 flex-grow self-stretch justify-between items-center bg-white`}>
                                 <div className={`p-3 bg-${s.toLowerCase()}-400`}>
                                     <h2 className={`text-zinc-500 p-1`}><strong>{s === 'Season' ? r[`season`] : s === 'Heat' ? r[`heat`] : r[`${s} Laps`].number}</strong></h2>
                                     <div className="flex flex-col">

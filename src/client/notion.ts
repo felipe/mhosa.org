@@ -10,6 +10,7 @@ import {
 const DriversTable = "🎮 Drivers";
 const TracksTable = `🎢 Tracks`;
 const SeasonsTable = `☑️ Season`;
+const ScheduleTable = `🗓️ Schedule`;
 const DivisionsTable = `⏫ Divisions`;
 
 const proDivisions = ["a94d52c3-1e9d-4007-9fd4-7ed2d5b660f5"];
@@ -55,46 +56,119 @@ type Driver = {
 };
 
 const cleanResults = async (results: any) => {
-  console.log(results);
-  return true;
+
+  let ret = {
+    track: '',
+    races: {},
+    // track: "Track Name",
+    // races: {
+    //   // 0: {
+    //   //   season: "Season Name",
+    //   //   race: "Race Number",
+    //   //   results: {
+    //   //     0: {
+    //   //       heat: "Heat 1",
+    //   //     },
+    //   //     1: {
+    //   //       heat: "Heat 2",
+    //   //     },
+    //   //   },
+    //   // },
+    // },
+  };
+
+  let track_id = ``;
+  let track_name = ``;
+
   const season_ids = new Set();
+  const seasons: Record<string, string>[] = [];
+
+  const race_ids = new Set();
+  const races: Record<string, string>[] = [];
+
   await Promise.all(
     results.map(async (result: any) => {
-      console.log(">>>>>>");
-      console.log(result);
-      console.log("<<<<<<");
+      // console.log(">>>>>>");
+      // console.log(result);
+      // console.log("<<<<<<");
 
-      season_ids.add(result.properties[SeasonsTable].relation[0].id);
+      track_id = result.properties[TracksTable].relation[0].id;
+
+      if (result.properties[SeasonsTable].relation.length) {
+        season_ids.add(result.properties[SeasonsTable].relation[0].id);
+      }
+
+      if (result.properties[ScheduleTable].relation.length) {
+        race_ids.add(result.properties[ScheduleTable].relation[0].id);
+      }
     })
   );
 
-  console.log(season_ids);
-  //   await Promise.all(
-  //     Array.from(season_ids).map(async (season_id: any) => {
-  //       const season = (await fetchSeasonById(season_id)) as any;
-  //       console.log(season);
-  //     })
-  //   );
+  // 🎢 Tracks
+  const track = (await fetchTrackById(track_id)) as any;
+  track_name = track.properties.Name.title[0].plain_text
 
-  let ret = {
-    track: "Track Name",
-    races: {
-      0: {
-        season: "Season Name",
-        race: "Race Number",
-        results: {
-          0: {
-            heat: "Heat 1",
-          },
-          1: {
-            heat: "Heat 2",
-          },
-        },
-      },
-    },
-  };
-  console.log(ret);
-};
+  // if (result.properties[TracksTable].relation.length) {
+  //   track_id = result.properties[TracksTable].relation[0].id;
+  //   ret.track = (await fetchTrackById(track_id)).properties.Name.title[0]
+  //     .plain_text;
+  // }
+
+  // ☑️ Season
+  await Promise.all(Array.from(season_ids).map(async (season_id: any) => {
+    const season = (await fetchSeasonById(season_id)) as any;
+    let season_info: any = {};
+    season_info[season_id] = season.properties.Name.title[0].plain_text
+    seasons.push(season_info);
+  }))
+
+  // 🗓️ Schedule
+  await Promise.all(Array.from(race_ids).map(async (race_id: any) => {
+    // console.log(race_id)
+    // const season = (await fetchSeasonById(season_id)) as any;
+    // let season_info: any = {};
+    // season_info[season_id] = season.properties.Name.title[0].plain_text
+    // seasons.push(season_info);
+  }));
+
+  //console.log(seasons)
+  // console.log(races)
+
+  seasons.forEach(async (season: any) => {
+    const season_id = Object.keys(season)[0]
+    const season_name = season[season_id]
+    ret.track = track_name as string
+    //console.log(season_id)
+    // console.log(results[0].properties[SeasonsTable].relation[0].id)
+    const heats = results.filter((result: any) => result.properties[SeasonsTable].relation[0].id === season_id);
+    (ret.races as any)[season_name as string] = heats.map((heat: any) => {
+      // console.log(heat);
+      return {
+        heat: heat.properties.Heat.select.name,
+        red_laps: heat.properties['Red Laps'].number,
+        red_hot_lap: heat.properties['Red Hot Lap'].number,
+        white_laps: heat.properties['White Laps'].number,
+        white_hot_lap: heat.properties['White Hot Lap'].number,
+        blue_laps: heat.properties['Blue Laps'].number,
+        blue_hot_lap: heat.properties['Blue Hot Lap'].number,
+        yellow_laps: heat.properties['Yellow Laps'].number,
+        yellow_hot_lap: heat.properties['Yellow Hot Lap'].number,
+        green_laps: heat.properties['Green Laps'].number,
+        green_hot_lap: heat.properties['Green Hot Lap'].number,
+        purple_laps: heat.properties['Purple Laps'].number,
+        purple_hot_lap: heat.properties['Purple Hot Lap'].number,
+        orange_laps: heat.properties['Orange Laps'].number,
+        orange_hot_lap: heat.properties['Orange Hot Lap'].number,
+        total_laps: heat.properties['Total Laps'].number,
+        final_sections: heat.properties['Final Sections'].number,
+      }
+    })
+
+    console.log(ret);
+  })
+
+  return ret
+}
 
 const cleanRaceResults = async (results: any) => {
   return await Promise.all(
@@ -189,38 +263,38 @@ export const fetchDriverResults = async (
 
   const raceResults = driver
     ? await notion.databases.query({
-        database_id: process.env.NOTION_RESULTS_DATABASE!,
-        filter: {
-          property: DriversTable,
-          relation: {
-            contains: driver.id,
-          },
-          //   and: [
-          //     {
-          //       property: TracksTable,
-          //       relation: {
-          //         contains: track.id,
-          //       },
-          //       and: [
-          //         {
-          //           property: "Not For Points",
-          //           checkbox: {
-          //             equals: false,
-          //           },
-          //         },
-          //       ],
-          //     },
-          //   ],
+      database_id: process.env.NOTION_RESULTS_DATABASE!,
+      filter: {
+        property: DriversTable,
+        relation: {
+          contains: driver.id,
         },
-        sorts: [{ timestamp: "created_time", direction: "descending" }],
-      })
+        //   and: [
+        //     {
+        //       property: TracksTable,
+        //       relation: {
+        //         contains: track.id,
+        //       },
+        //       and: [
+        //         {
+        //           property: "Not For Points",
+        //           checkbox: {
+        //             equals: false,
+        //           },
+        //         },
+        //       ],
+        //     },
+        //   ],
+      },
+      sorts: [{ timestamp: "created_time", direction: "descending" }],
+    })
     : { results: [] };
 
   await cleanResults(
-    await raceResults.results.find(
+    (await raceResults.results.filter(
       (result: any) =>
         track.id === result.properties[TracksTable].relation[0].id
-    )
+    )).sort().reverse()
   );
 
   const results = await cleanRaceResults(raceResults);
@@ -246,21 +320,21 @@ export const fetchDriverResults = async (
 
   return driver
     ? ({
-        name: (driver as any).properties.Name.title[0].plain_text,
-        slug: (driver as any).properties.Name.title[0].plain_text
-          .toLowerCase()
-          .replaceAll(" ", "-"),
-        color: colorMatcher(
-          (driver as any).properties.color.select?.name || "green"
-        ),
-        nickname: (driver as any).properties.Nickname.rich_text[0]
-          ? (driver as any).properties.Nickname.rich_text[0].text.content
-          : "",
-        location: "", //(driver as any).properties.Location.rich_text[0].text.content,
-        division: results[0].division,
-        results,
-        tracks,
-      } as Driver)
+      name: (driver as any).properties.Name.title[0].plain_text,
+      slug: (driver as any).properties.Name.title[0].plain_text
+        .toLowerCase()
+        .replaceAll(" ", "-"),
+      color: colorMatcher(
+        (driver as any).properties.color.select?.name || "green"
+      ),
+      nickname: (driver as any).properties.Nickname.rich_text[0]
+        ? (driver as any).properties.Nickname.rich_text[0].text.content
+        : "",
+      location: "", //(driver as any).properties.Location.rich_text[0].text.content,
+      division: results[0].division,
+      results,
+      tracks,
+    } as Driver)
     : null;
 };
 
@@ -279,15 +353,15 @@ export const fetchDriver = async (slug: string) => {
 
   const raceResults = driver
     ? await notion.databases.query({
-        database_id: process.env.NOTION_RESULTS_DATABASE!,
-        filter: {
-          property: "🎮 Drivers",
-          relation: {
-            contains: driver.id,
-          },
+      database_id: process.env.NOTION_RESULTS_DATABASE!,
+      filter: {
+        property: "🎮 Drivers",
+        relation: {
+          contains: driver.id,
         },
-        sorts: [{ timestamp: "created_time", direction: "descending" }],
-      })
+      },
+      sorts: [{ timestamp: "created_time", direction: "descending" }],
+    })
     : { results: [] };
 
   const results = await cleanRaceResults(raceResults);
@@ -313,21 +387,21 @@ export const fetchDriver = async (slug: string) => {
 
   return driver
     ? ({
-        name: (driver as any).properties.Name.title[0].plain_text,
-        slug: (driver as any).properties.Name.title[0].plain_text
-          .toLowerCase()
-          .replaceAll(" ", "-"),
-        color: colorMatcher(
-          (driver as any).properties.color.select?.name || "green"
-        ),
-        nickname: (driver as any).properties.Nickname.rich_text[0]
-          ? (driver as any).properties.Nickname.rich_text[0].text.content
-          : "",
-        location: "", //(driver as any).properties.Location.rich_text[0].text.content,
-        division: results[0].division,
-        results,
-        tracks,
-      } as Driver)
+      name: (driver as any).properties.Name.title[0].plain_text,
+      slug: (driver as any).properties.Name.title[0].plain_text
+        .toLowerCase()
+        .replaceAll(" ", "-"),
+      color: colorMatcher(
+        (driver as any).properties.color.select?.name || "green"
+      ),
+      nickname: (driver as any).properties.Nickname.rich_text[0]
+        ? (driver as any).properties.Nickname.rich_text[0].text.content
+        : "",
+      location: "", //(driver as any).properties.Location.rich_text[0].text.content,
+      division: results[0].division,
+      results,
+      tracks,
+    } as Driver)
     : null;
 };
 
@@ -340,18 +414,18 @@ export const fetchDriverById = async (driverId: string) => {
 
   return driver
     ? ({
-        name: (driver as any).properties.Name.title[0].plain_text,
-        slug: (driver as any).properties.Name.title[0].plain_text
-          .toLowerCase()
-          .replaceAll(" ", "-"),
-        color: colorMatcher(
-          (driver as any).properties.color.select?.name || "green"
-        ),
-        nickname: (driver as any).properties.Nickname.rich_text[0]
-          ? (driver as any).properties.Nickname.rich_text[0].text.content
-          : "",
-        location: "", //(driver as any).properties.Location.rich_text[0].text.content,
-      } as Driver)
+      name: (driver as any).properties.Name.title[0].plain_text,
+      slug: (driver as any).properties.Name.title[0].plain_text
+        .toLowerCase()
+        .replaceAll(" ", "-"),
+      color: colorMatcher(
+        (driver as any).properties.color.select?.name || "green"
+      ),
+      nickname: (driver as any).properties.Nickname.rich_text[0]
+        ? (driver as any).properties.Nickname.rich_text[0].text.content
+        : "",
+      location: "", //(driver as any).properties.Location.rich_text[0].text.content,
+    } as Driver)
     : null;
 };
 

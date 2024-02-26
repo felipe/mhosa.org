@@ -83,7 +83,7 @@ const cleanResults = async (results: any) => {
   const seasons: Record<string, string>[] = [];
 
   const race_ids = new Set();
-  const races: Record<string, string>[] = [];
+  const races: any = {}
 
   await Promise.all(
     results.map(async (result: any) => {
@@ -123,11 +123,17 @@ const cleanResults = async (results: any) => {
 
   // 🗓️ Schedule
   await Promise.all(Array.from(race_ids).map(async (race_id: any) => {
+    // console.log("xxyy")
     // console.log(race_id)
-    // const season = (await fetchSeasonById(season_id)) as any;
+    const race = (await fetchScheduleById(race_id)) as any;
+    // console.log(race.properties.Name.title[0].plain_text)
     // let season_info: any = {};
     // season_info[season_id] = season.properties.Name.title[0].plain_text
     // seasons.push(season_info);
+
+    // let race_info: any = {};
+    races[race_id] = race.properties.Name.title[0].plain_text
+    // races.push(race_info);
   }));
 
   //console.log(seasons)
@@ -137,13 +143,13 @@ const cleanResults = async (results: any) => {
     const season_id = Object.keys(season)[0]
     const season_name = season[season_id]
     ret.track = track_name as string
-    //console.log(season_id)
-    // console.log(results[0].properties[SeasonsTable].relation[0].id)
+
     const heats = results.filter((result: any) => result.properties[SeasonsTable].relation[0].id === season_id);
     (ret.races as any)[season_name as string] = heats.map((heat: any) => {
-      // console.log(heat);
+      const race_id = (heat.properties[ScheduleTable].relation.length ? heat.properties[ScheduleTable].relation[0].id : null)
+
       return {
-        race: 'Race 3',
+        race: race_id ? races[race_id] : '',
         heat: heat.properties.Heat.select.name,
         red_laps: heat.properties['Red Laps'].number,
         red_hot_lap: heat.properties['Red Hot Lap'].number,
@@ -219,6 +225,14 @@ const fetchSeasonById = async (id: string) => {
       database_id: process.env.NOTION_SEASON_DATABASE!,
     })
   ).results.find((season: any) => season.id === id);
+};
+
+const fetchScheduleById = async (id: string) => {
+  return await (
+    await notion.databases.query({
+      database_id: process.env.NOTION_SCHEDULE_DATABASE!,
+    })
+  ).results.find((race: any) => race.id === id);
 };
 
 export const fetchDrivers = React.cache(() => {

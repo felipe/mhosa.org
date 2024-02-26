@@ -1,6 +1,5 @@
 import { fetchDriverResults } from "@/client/notion";
 import { notFound } from "next/navigation";
-import { useState } from "react";
 
 const buildTrackHeaders = (result: any): Set<string> => {
     // const headers = Object.keys(result)
@@ -23,7 +22,7 @@ const buildTrackHeaders = (result: any): Set<string> => {
 }
 
 export default async function ResultsBlock({ slug, track }: { slug: string, track: string }) {
-    const [filter, setFilter] = useState('filter')
+    // const [filter, setFilter] = useState('filter')
 
     const raceResults = (await fetchDriverResults(slug, track))
     if (!raceResults) notFound();
@@ -48,7 +47,7 @@ export default async function ResultsBlock({ slug, track }: { slug: string, trac
                 return <>
                     <div key={i} className="flex w-full max-w-5xl flex-wrap items-center justify-between bg-gray-200">
                         <h2 className={`text-zinc-800 p-3`}><strong>{season}</strong> &bull; <strong>{current_season[0]['race']}</strong></h2>
-                        <h2 className={`text-zinc-800 p-3`}>Laps / Fastest Laps</h2>
+                        <h2 className={`text-zinc-800 p-3`}>Laps</h2>
                     </div>
                     <div className="z-10 w-full flex-row font-mono text-sm lg:flex justify-center">
                         <div className="flex w-full max-w-5xl flex-wrap items-center">

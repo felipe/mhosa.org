@@ -41,7 +41,7 @@ export default async function ResultsBlock({ slug, track }: { slug: string, trac
             <h2 className={`text-zinc-800 p-3`}><strong>{raceResults.track}</strong></h2>
         </div>
         { // Seasons
-            Object.keys((raceResults as any).races).map((season: any, i: any) => {
+            Object.keys((raceResults as any).races).sort().reverse().map((season: any, i: any) => {
                 const current_season = (raceResults as any).races[season];
                 const trackHeaders: Set<string> = buildTrackHeaders(current_season[0])
                 return <>

@@ -12,7 +12,7 @@ export default async function DriverBlock({ slug }: { slug: string }) {
         <main className="flex flex-col items-center justify-between">
             <div className="z-10 w-full flex-row font-mono text-sm sm:flex justify-center">
                 <div className="flex w-full max-w-5xl max-h-45 items-center sm:flex-row flex-row-reverse">
-                    <div className={`basis-1/3 md:basis-1/4 aspect-square items-center ${driver.color || `bg-red-900`}`}>
+                    <div className={`relative basis-1/3 md:basis-1/4 aspect-square items-center ${driver.color || `bg-red-900`}`}>
                         <Image src={controller} className={`flex`} alt={`Controller`} />
                     </div>
                     <div className="flex-grow flex-col self-stretch grid content-between bg-lime-700 p-5">

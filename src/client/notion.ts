@@ -60,7 +60,6 @@ const cleanResults = async (results: any) => {
   let ret = {
     track: '',
     races: {},
-    // track: "Track Name",
     // races: {
     //   // 0: {
     //   //   season: "Season Name",
@@ -144,6 +143,7 @@ const cleanResults = async (results: any) => {
     (ret.races as any)[season_name as string] = heats.map((heat: any) => {
       // console.log(heat);
       return {
+        race: 'Race 3',
         heat: heat.properties.Heat.select.name,
         red_laps: heat.properties['Red Laps'].number,
         red_hot_lap: heat.properties['Red Hot Lap'].number,
@@ -164,7 +164,7 @@ const cleanResults = async (results: any) => {
       }
     })
 
-    console.log(ret);
+    // console.log(ret);
   })
 
   return ret
@@ -290,18 +290,18 @@ export const fetchDriverResults = async (
     })
     : { results: [] };
 
-  await cleanResults(
+  const results  = await cleanResults(
     (await raceResults.results.filter(
       (result: any) =>
         track.id === result.properties[TracksTable].relation[0].id
     )).sort().reverse()
   );
 
-  const results = await cleanRaceResults(raceResults);
+  // const results = await cleanRaceResults(raceResults);
 
   // console.log(results)
 
-  const tracks = Array.from(new Set(results.map((race) => race.track)));
+  // const tracks =  [track]// Array.from(new Set(results.map((race) => race.track)));
 
   // const division = (await notion.databases.query({
   //     database_id: process.env.NOTION_DIVISION_DATABASE!
@@ -318,24 +318,26 @@ export const fetchDriverResults = async (
   // })).results.find((track: any) => track.id === (results[0] as any).properties[TracksTable].relation[0].id)
   // console.log(track)
 
-  return driver
-    ? ({
-      name: (driver as any).properties.Name.title[0].plain_text,
-      slug: (driver as any).properties.Name.title[0].plain_text
-        .toLowerCase()
-        .replaceAll(" ", "-"),
-      color: colorMatcher(
-        (driver as any).properties.color.select?.name || "green"
-      ),
-      nickname: (driver as any).properties.Nickname.rich_text[0]
-        ? (driver as any).properties.Nickname.rich_text[0].text.content
-        : "",
-      location: "", //(driver as any).properties.Location.rich_text[0].text.content,
-      division: results[0].division,
-      results,
-      tracks,
-    } as Driver)
-    : null;
+return driver ? results : null;
+
+  // return driver
+  //   ? ({
+  //     name: (driver as any).properties.Name.title[0].plain_text,
+  //     slug: (driver as any).properties.Name.title[0].plain_text
+  //       .toLowerCase()
+  //       .replaceAll(" ", "-"),
+  //     color: colorMatcher(
+  //       (driver as any).properties.color.select?.name || "green"
+  //     ),
+  //     nickname: (driver as any).properties.Nickname.rich_text[0]
+  //       ? (driver as any).properties.Nickname.rich_text[0].text.content
+  //       : "",
+  //     location: "", //(driver as any).properties.Location.rich_text[0].text.content,
+  //     division: results[0].division,
+  //     results,
+  //     tracks,
+  //   } as Driver)
+  //   : null;
 };
 
 export const fetchDriver = async (slug: string) => {

@@ -97,7 +97,7 @@ const cleanResults = async (results: any) => {
         season_ids.add(result.properties[SeasonsTable].relation[0].id);
       }
 
-      if (result.properties[ScheduleTable].relation.length) {
+      if (result.properties[ScheduleTable] && result.properties[ScheduleTable].relation.length) {
         race_ids.add(result.properties[ScheduleTable].relation[0].id);
       }
     })

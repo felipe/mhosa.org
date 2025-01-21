@@ -1,161 +1,219 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import type { Database } from "@/database.types"
 
-// Sample data structure
-const resultsData = {
-    "2025": {
-        "Spring Championship": {
-            "Stock Car": [
-                {
-                    date: "2025-04-15",
-                    heats: [
-                        {
-                            heatNumber: 1,
-                            results: [
-                                { position: 1, driver: "John Doe", time: "1:23.456" },
-                                { position: 2, driver: "Jane Smith", time: "1:23.789" },
-                                { position: 3, driver: "Bob Johnson", time: "1:24.012" },
-                            ],
-                        },
-                        {
-                            heatNumber: 2,
-                            results: [
-                                { position: 1, driver: "Alice Brown", time: "1:23.234" },
-                                { position: 2, driver: "Charlie Davis", time: "1:23.567" },
-                                { position: 3, driver: "Eva White", time: "1:23.890" },
-                            ],
-                        },
-                    ],
-                },
-            ],
-            "Formula X": [
-                {
-                    date: "2025-04-16",
-                    heats: [
-                        {
-                            heatNumber: 1,
-                            results: [
-                                { position: 1, driver: "Frank Miller", time: "1:15.123" },
-                                { position: 2, driver: "Grace Lee", time: "1:15.456" },
-                                { position: 3, driver: "Henry Wilson", time: "1:15.789" },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        },
-    },
-    "2024": {
-        "Fall Classic": {
-            "Stock Car": [
-                {
-                    date: "2024-09-20",
-                    heats: [
-                        {
-                            heatNumber: 1,
-                            results: [
-                                { position: 1, driver: "Olivia Taylor", time: "1:24.321" },
-                                { position: 2, driver: "Peter Anderson", time: "1:24.654" },
-                                { position: 3, driver: "Quinn Roberts", time: "1:24.987" },
-                            ],
-                        },
-                    ],
-                },
-            ],
-        },
-    },
+type RaceResult = Database['public']['Tables']['race_results']['Row'] & {
+  race: Database['public']['Tables']['races']['Row']
+  driver: Database['public']['Tables']['drivers']['Row']
 }
 
 export default function ResultsContent() {
-    const [selectedSeason, setSelectedSeason] = useState("2025")
-    const [selectedEvent, setSelectedEvent] = useState("Spring Championship")
-    const [selectedDivision, setSelectedDivision] = useState("Stock Car")
+  const [seasons, setSeasons] = useState<string[]>([])
+  const [events, setEvents] = useState<Database['public']['Tables']['races']['Row'][]>([])
+  const [divisions, setDivisions] = useState<Database['public']['Tables']['divisions']['Row'][]>([])
+  const [results, setResults] = useState<RaceResult[]>([])
+  const [loading, setLoading] = useState(true)
 
-    const seasons = Object.keys(resultsData)
-    const events = Object.keys(resultsData[selectedSeason] || {})
-    const divisions = Object.keys(resultsData[selectedSeason]?.[selectedEvent] || {})
+  const [selectedSeason, setSelectedSeason] = useState<string>("")
+  const [selectedEvent, setSelectedEvent] = useState<string>("")
+  const [selectedDivision, setSelectedDivision] = useState<string>("")
 
-    const results = resultsData[selectedSeason]?.[selectedEvent]?.[selectedDivision] || []
+  const supabase = createClientComponentClient<Database>()
 
-    return (
-        <section className="py-12">
-            <div className="container mx-auto px-4">
-                <h1 className="text-4xl font-bold mb-8">Race Results</h1>
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      const { data: races } = await supabase
+        .from('races')
+        .select('date')
+        .order('date', { ascending: false });
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <Select onValueChange={setSelectedSeason} value={selectedSeason}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select Season" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {seasons.map((season) => (
-                                <SelectItem key={season} value={season}>
-                                    {season} Season
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+      if (races) {
+        const uniqueSeasons = [...new Set(races.map(race =>
+          new Date(race.date).getFullYear().toString()
+        ))].sort().reverse();
 
-                    <Select onValueChange={setSelectedEvent} value={selectedEvent}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select Event" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {events.map((event) => (
-                                <SelectItem key={event} value={event}>
-                                    {event}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+        setSeasons(uniqueSeasons);
+        if (uniqueSeasons.length > 0) {
+          setSelectedSeason(uniqueSeasons[0]);
+        }
+      }
 
-                    <Select onValueChange={setSelectedDivision} value={selectedDivision}>
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select Division" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {divisions.map((division) => (
-                                <SelectItem key={division} value={division}>
-                                    {division}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+      if (races) {
+        const uniqueSeasons = [...new Set(races.map(race =>
+          new Date(race.date).getFullYear().toString()
+        ))].sort().reverse()
 
-                {results.map((raceDay, index) => (
-                    <div key={index} className="mb-8">
-                        <h2 className="text-2xl font-semibold mb-4">Race Day: {raceDay.date}</h2>
-                        {raceDay.heats.map((heat) => (
-                            <div key={heat.heatNumber} className="mb-6">
-                                <h3 className="text-xl font-semibold mb-2">Heat {heat.heatNumber}</h3>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Position</TableHead>
-                                            <TableHead>Driver</TableHead>
-                                            <TableHead>Time</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {heat.results.map((result) => (
-                                            <TableRow key={result.position}>
-                                                <TableCell>{result.position}</TableCell>
-                                                <TableCell>{result.driver}</TableCell>
-                                                <TableCell>{result.time}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-                        ))}
-                    </div>
+        setSeasons(uniqueSeasons)
+        if (uniqueSeasons.length > 0) {
+          setSelectedSeason(uniqueSeasons[0])
+        }
+      }
+    }
+
+    fetchInitialData()
+  }, [supabase])
+
+  // Fetch divisions when season changes
+  useEffect(() => {
+    if (selectedSeason) {
+      const fetchDivisions = async () => {
+        const startDate = `${selectedSeason}-01-01`;
+        const endDate = `${selectedSeason}-12-31`;
+
+        const { data: seasonDivisions } = await supabase
+          .from('race_results')
+          .select('division_id(id, name)')
+          .gte('race:race_id(date)', startDate)
+          .lte('race:race_id(date)', endDate)
+          .distinct();
+
+        if (seasonDivisions) {
+          const uniqueDivisions = seasonDivisions
+            .map((d: any) => d.division_id)
+            .filter((d: any): d is NonNullable<typeof d> => d !== null);
+
+          setDivisions(uniqueDivisions);
+          if (uniqueDivisions.length > 0) {
+            setSelectedDivision(uniqueDivisions[0].id.toString());
+          } else {
+            setSelectedDivision("");
+          }
+        }
+      };
+
+      fetchDivisions();
+    }
+  }, [selectedSeason, supabase]);
+
+  useEffect(() => {
+    if (selectedSeason) {
+      const fetchEvents = async () => {
+        const startDate = `${selectedSeason}-01-01`;
+        const endDate = `${selectedSeason}-12-31`;
+
+        const { data: races } = await supabase
+          .from('races')
+          .select('*')
+          .gte('date', startDate)
+          .lte('date', endDate)
+          .order('date', { ascending: false })
+
+        if (races) {
+          setEvents(races)
+          if (races.length > 0) {
+            setSelectedEvent(races[0].id.toString())
+          }
+        }
+      }
+
+      fetchEvents()
+    }
+  }, [selectedSeason, supabase])
+
+  useEffect(() => {
+    if (selectedEvent) {
+      const fetchResults = async () => {
+        setLoading(true)
+        const { data: results, error } = await supabase
+          .from('race_results')
+          .select(`
+            *,
+            race:race_id(*),
+            driver:driver_id(*)
+          `)
+          .eq('race_id', Number(selectedEvent))
+          .eq('division_id', Number(selectedDivision))
+          .order('position', { ascending: true })
+
+        if (results) {
+          setResults(results as RaceResult[])
+        }
+        setLoading(false)
+      }
+
+      fetchResults()
+    }
+  }, [selectedEvent, supabase])
+
+  if (loading) {
+    return <div>Loading...</div>
+  }
+
+  return (
+    <section className="py-12">
+      <div className="container mx-auto px-4">
+        <h1 className="text-4xl font-bold mb-8">Race Results</h1>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Select onValueChange={setSelectedSeason} value={selectedSeason}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Season" />
+            </SelectTrigger>
+            <SelectContent>
+              {seasons.map((season) => (
+                <SelectItem key={season} value={season}>
+                  {season} Season
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select onValueChange={setSelectedEvent} value={selectedEvent}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Event" />
+            </SelectTrigger>
+            <SelectContent>
+              {events.map((event) => (
+                <SelectItem key={event.id} value={event.id.toString()}>
+                  {event.name} - {new Date(event.date).toLocaleDateString()}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select onValueChange={setSelectedDivision} value={selectedDivision}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select Division" />
+            </SelectTrigger>
+            <SelectContent>
+              {divisions.map((division) => (
+                <SelectItem key={division.id} value={division.id.toString()}>
+                  {division.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="mb-8">
+          {results.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Position</TableHead>
+                  <TableHead>Driver</TableHead>
+                  <TableHead>Time</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {results.map((result) => (
+                  <TableRow key={result.id}>
+                    <TableCell>{result.position}</TableCell>
+                    <TableCell>{result.driver.name}</TableCell>
+                    <TableCell>{result.time}</TableCell>
+                  </TableRow>
                 ))}
-            </div>
-        </section>
-    )
+              </TableBody>
+            </Table>
+          ) : (
+            <p>No results available for this event.</p>
+          )}
+        </div>
+      </div>
+    </section>
+  )
 }
-

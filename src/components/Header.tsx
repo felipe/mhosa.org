@@ -10,6 +10,7 @@ export default function Header() {
             <li><Link href="#about" className="text-gray-700 hover:text-blue-600 transition-colors duration-300">About</Link></li>
             <li><Link href="#membership" className="text-gray-700 hover:text-blue-600 transition-colors duration-300">Membership</Link></li>
             <li><Link href="#races" className="text-gray-700 hover:text-blue-600 transition-colors duration-300">Races</Link></li>
+            <li><Link href="/results" className="text-gray-700 hover:text-blue-600 transition-colors duration-300">Results</Link></li>
           </ul>
         </nav>
       </div>

@@ -18,6 +18,19 @@ type Result = {
   };
 };
 
+type RawResult = {
+  id: number;
+  position: number;
+  time: string;
+  race: {
+    name: string;
+    date: string;
+  }[];
+  driver: {
+    name: string;
+  }[];
+};
+
 type ResultsContextType = {
   results: Result[];
   loading: boolean;
@@ -55,7 +68,21 @@ export function ResultsProvider({ children }: { children: React.ReactNode }) {
           throw error;
         }
 
-        setResults(data || []);
+        // Transform the raw data into the correct format
+        const transformedResults: Result[] = (data || []).map((item: RawResult) => ({
+          id: item.id,
+          position: item.position,
+          time: item.time,
+          race: {
+            name: item.race[0]?.name || '',
+            date: item.race[0]?.date || '',
+          },
+          driver: {
+            name: item.driver[0]?.name || '',
+          }
+        }));
+
+        setResults(transformedResults);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch results');
       } finally {

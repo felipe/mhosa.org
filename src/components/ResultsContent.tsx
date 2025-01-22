@@ -9,6 +9,7 @@ import type { Database } from "@/database.types"
 type RaceSplit = Database['public']['Tables']['race_splits']['Row'] & {
   race: Database['public']['Tables']['races']['Row']
   driver: Database['public']['Tables']['drivers']['Row']
+  division: Database['public']['Tables']['divisions']['Row']
 }
 
 export default function ResultsContent() {
@@ -16,7 +17,14 @@ export default function ResultsContent() {
   const [events, setEvents] = useState<Database['public']['Tables']['races']['Row'][]>([])
   const [divisions, setDivisions] = useState<Database['public']['Tables']['divisions']['Row'][]>([])
   const [results, setResults] = useState<RaceSplit[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true);
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: 'asc' | 'desc';
+  }>({
+    key: 'total_laps',
+    direction: 'desc'
+  });
 
   const [selectedSeason, setSelectedSeason] = useState<string>("")
   const [selectedEvent, setSelectedEvent] = useState<string>("")
@@ -90,7 +98,7 @@ export default function ResultsContent() {
 
         if (results) {
           setResults(results as RaceSplit[]);
-          
+
           // Get unique divisions from the results using a Map to deduplicate
           const divisionsMap = new Map();
           results.forEach(r => {
@@ -101,10 +109,10 @@ export default function ResultsContent() {
               });
             }
           });
-          
+
           const uniqueDivisions = Array.from(divisionsMap.values());
           setDivisions(uniqueDivisions);
-          
+
           if (uniqueDivisions.length > 0) {
             setSelectedDivision(uniqueDivisions[0].id.toString());
           } else {
@@ -170,28 +178,191 @@ export default function ResultsContent() {
           </Select>
         </div>
 
-        <div className="mb-8">
+        <div className="mb-8 space-y-8">
           {results.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Driver</TableHead>
-                  <TableHead>Split Time</TableHead>
-                  <TableHead>Split Number</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {results
+            <>
+              {/* Calculate best results once */}
+              {(() => {
+                const bestResults = results
                   .filter(result => result.division_id === Number(selectedDivision))
-                  .map((result) => (
-                    <TableRow key={result.id}>
-                      <TableCell>{result.driver.name}</TableCell>
-                      <TableCell>{result.split_time}</TableCell>
-                      <TableCell>{result.split_number}</TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
+                  .reduce((acc, curr) => {
+                    const existing = acc.find(r => r.driver_id === curr.driver_id);
+                    if (!existing) {
+                      acc.push({...curr});
+                    } else if ((curr.total_laps + (curr.final_sections || 0) / 100) > 
+                              (existing.total_laps + (existing.final_sections || 0) / 100)) {
+                      existing.total_laps = curr.total_laps;
+                      existing.final_sections = curr.final_sections;
+                      existing.driver = curr.driver;
+                    }
+                    return acc;
+                  }, [] as typeof results)
+                  .sort((a, b) => 
+                    (b.total_laps + (b.final_sections || 0) / 100) - 
+                    (a.total_laps + (a.final_sections || 0) / 100)
+                  );
+
+                return (
+                  <div className="grid grid-cols-3 gap-4">
+                    {/* Second Place */}
+                    <div className="order-1 bg-gray-100 p-4 rounded-lg text-center">
+                      <div className="text-xl font-semibold mb-2">2nd Place</div>
+                      {bestResults[1] && (
+                        <div>
+                          <div className="font-medium">
+                            {bestResults[1]?.driver.name}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {bestResults[1]?.total_laps}
+                            {bestResults[1]?.final_sections !== undefined 
+                              ? `.${bestResults[1].final_sections}`
+                              : ''} laps
+                          </div>
+                        </div>
+                  )}
+                </div>
+                
+                {/* First Place */}
+                <div className="order-2 bg-yellow-100 p-4 rounded-lg text-center">
+                  <div className="text-2xl font-bold mb-2">1st Place</div>
+                  {bestResults[0] && (
+                    <div>
+                      <div className="font-medium">
+                        {bestResults[0]?.driver.name}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {bestResults[0]?.total_laps}
+                        {bestResults[0]?.final_sections !== undefined 
+                          ? `.${bestResults[0].final_sections}`
+                          : ''} laps
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Third Place */}
+                <div className="order-3 bg-orange-100 p-4 rounded-lg text-center">
+                  <div className="text-xl font-semibold mb-2">3rd Place</div>
+                  {bestResults[2] && (
+                    <div>
+                      <div className="font-medium">
+                        {bestResults[2]?.driver.name}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {bestResults[2]?.total_laps}
+                        {bestResults[2]?.final_sections !== undefined 
+                          ? `.${bestResults[2].final_sections}`
+                          : ''} laps
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+                );
+              })()}
+              {[...new Set(results.map(r => r.heat))].sort().map((heat) => (
+                <div key={heat} className="space-y-4">
+                  <h3 className="text-2xl font-semibold">Heat {heat}</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setSortConfig({
+                            key: 'driver',
+                            direction: sortConfig.key === 'driver' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                          })}
+                        >
+                          Driver {sortConfig.key === 'driver' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setSortConfig({
+                            key: 'yellow_laps',
+                            direction: sortConfig.key === 'yellow_laps' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                          })}
+                        >
+                          Yellow Laps {sortConfig.key === 'yellow_laps' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setSortConfig({
+                            key: 'red_laps',
+                            direction: sortConfig.key === 'red_laps' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                          })}
+                        >
+                          Red Laps {sortConfig.key === 'red_laps' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setSortConfig({
+                            key: 'blue_laps',
+                            direction: sortConfig.key === 'blue_laps' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                          })}
+                        >
+                          Blue Laps {sortConfig.key === 'blue_laps' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setSortConfig({
+                            key: 'white_laps',
+                            direction: sortConfig.key === 'white_laps' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                          })}
+                        >
+                          White Laps {sortConfig.key === 'white_laps' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setSortConfig({
+                            key: 'total_laps',
+                            direction: sortConfig.key === 'total_laps' && sortConfig.direction === 'asc' ? 'desc' : 'asc'
+                          })}
+                        >
+                          Total Laps {sortConfig.key === 'total_laps' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {results
+                        .filter(result =>
+                          result.division_id === Number(selectedDivision) &&
+                          result.heat === heat
+                        )
+                        .sort((a, b) => {
+                          const multiplier = sortConfig.direction === 'asc' ? 1 : -1;
+                          
+                          if (sortConfig.key === 'driver') {
+                            return multiplier * a.driver.name.localeCompare(b.driver.name);
+                          }
+                          
+                          if (sortConfig.key === 'total_laps') {
+                            const aTotal = a.total_laps + (a.final_sections || 0) / 100;
+                            const bTotal = b.total_laps + (b.final_sections || 0) / 100;
+                            return multiplier * (aTotal - bTotal);
+                          }
+                          
+                          const aValue = a[sortConfig.key as keyof typeof a] || 0;
+                          const bValue = b[sortConfig.key as keyof typeof b] || 0;
+                          return multiplier * (Number(aValue) - Number(bValue));
+                        })
+                        .map((result) => (
+                          <TableRow key={result.id}>
+                            <TableCell>{result.driver.name}</TableCell>
+                            <TableCell>{result.yellow_laps || '-'}</TableCell>
+                            <TableCell>{result.red_laps || '-'}</TableCell>
+                            <TableCell>{result.blue_laps || '-'}</TableCell>
+                            <TableCell>{result.white_laps || '-'}</TableCell>
+                            <TableCell>
+                              {result.total_laps}
+                              {typeof result.final_sections !== 'undefined' ? `.${result.final_sections}` : ''}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ))}
+            </>
           ) : (
             <p>No results available for this event.</p>
           )}

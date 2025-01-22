@@ -18,7 +18,7 @@ export default function HeroSection() {
             alt="Racing car cutout"
             width={600}
             height={400}
-            className="w-full h-auto object-cover rounded-lg shadow-2xl transform -rotate-6"
+            className="w-full h-auto object-cover rounded-lg transform -rotate-6"
           />
         </div>
       </div>

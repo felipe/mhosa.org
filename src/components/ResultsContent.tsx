@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { Database } from "@/database.types"
 
-type RaceResult = Database['public']['Tables']['race_results']['Row'] & {
+type RaceSplit = Database['public']['Tables']['race_splits']['Row'] & {
   race: Database['public']['Tables']['races']['Row']
   driver: Database['public']['Tables']['drivers']['Row']
 }
@@ -15,7 +15,7 @@ export default function ResultsContent() {
   const [seasons, setSeasons] = useState<string[]>([])
   const [events, setEvents] = useState<Database['public']['Tables']['races']['Row'][]>([])
   const [divisions, setDivisions] = useState<Database['public']['Tables']['divisions']['Row'][]>([])
-  const [results, setResults] = useState<RaceResult[]>([])
+  const [results, setResults] = useState<RaceSplit[]>([])
   const [loading, setLoading] = useState(true)
 
   const [selectedSeason, setSelectedSeason] = useState<string>("")
@@ -25,7 +25,7 @@ export default function ResultsContent() {
   const supabase = createClientComponentClient<Database>()
 
   useEffect(() => {
-    const fetchInitialData = async () => {
+    const fetchSeasons = async () => {
       const { data: races } = await supabase
         .from('races')
         .select('date')
@@ -41,63 +41,20 @@ export default function ResultsContent() {
           setSelectedSeason(uniqueSeasons[0]);
         }
       }
-
-      if (races) {
-        const uniqueSeasons = [...new Set(races.map(race =>
-          new Date(race.date).getFullYear().toString()
-        ))].sort().reverse()
-
-        setSeasons(uniqueSeasons)
-        if (uniqueSeasons.length > 0) {
-          setSelectedSeason(uniqueSeasons[0])
-        }
-      }
     }
 
-    fetchInitialData()
+    fetchSeasons()
   }, [supabase])
-
-  // Fetch divisions when season changes
-  useEffect(() => {
-    if (selectedSeason) {
-      const fetchDivisions = async () => {
-        const startDate = `${selectedSeason}-01-01`;
-        const endDate = `${selectedSeason}-12-31`;
-
-        const { data: seasonDivisions } = await supabase
-          .from('race_results')
-          .select('division_id(id, name)')
-          .gte('race:race_id(date)', startDate)
-          .lte('race:race_id(date)', endDate)
-          .distinct();
-
-        if (seasonDivisions) {
-          const uniqueDivisions = seasonDivisions
-            .map((d: any) => d.division_id)
-            .filter((d: any): d is NonNullable<typeof d> => d !== null);
-
-          setDivisions(uniqueDivisions);
-          if (uniqueDivisions.length > 0) {
-            setSelectedDivision(uniqueDivisions[0].id.toString());
-          } else {
-            setSelectedDivision("");
-          }
-        }
-      };
-
-      fetchDivisions();
-    }
-  }, [selectedSeason, supabase]);
 
   useEffect(() => {
     if (selectedSeason) {
       const fetchEvents = async () => {
-        const startDate = `${selectedSeason}-01-01`;
-        const endDate = `${selectedSeason}-12-31`;
+        const startDate = `${selectedSeason}-01-01`
+        const endDate = `${selectedSeason}-12-31`
 
         const { data: races } = await supabase
           .from('races')
-          .select('*')
+          .select(`*, track:track_id(*)`)
           .gte('date', startDate)
           .lte('date', endDate)
           .order('date', { ascending: false })
@@ -116,26 +73,50 @@ export default function ResultsContent() {
 
   useEffect(() => {
     if (selectedEvent) {
-      const fetchResults = async () => {
-        setLoading(true)
-        const { data: results, error } = await supabase
-          .from('race_results')
+      const fetchResultsAndDivisions = async () => {
+        setLoading(true);
+
+        // Fetch race splits
+        const { data: results } = await supabase
+          .from('race_splits')
           .select(`
             *,
             race:race_id(*),
-            driver:driver_id(*)
+            driver:driver_id(*),
+            division:division_id(*)
           `)
           .eq('race_id', Number(selectedEvent))
-          .eq('division_id', Number(selectedDivision))
-          .order('position', { ascending: true })
+        // .order('split_time', { ascending: true });
 
         if (results) {
-          setResults(results as RaceResult[])
+          setResults(results as RaceSplit[]);
+          
+          // Get unique divisions from the results using a Map to deduplicate
+          const divisionsMap = new Map();
+          results.forEach(r => {
+            if (r.division_id && r.division?.name) {
+              divisionsMap.set(r.division_id, {
+                id: r.division_id,
+                name: r.division.name
+              });
+            }
+          });
+          
+          const uniqueDivisions = Array.from(divisionsMap.values());
+          setDivisions(uniqueDivisions);
+          
+          if (uniqueDivisions.length > 0) {
+            setSelectedDivision(uniqueDivisions[0].id.toString());
+          } else {
+            setDivisions([]);
+            setSelectedDivision("");
+          }
         }
-        setLoading(false)
-      }
 
-      fetchResults()
+        setLoading(false);
+      };
+
+      fetchResultsAndDivisions();
     }
   }, [selectedEvent, supabase])
 
@@ -169,7 +150,7 @@ export default function ResultsContent() {
             <SelectContent>
               {events.map((event) => (
                 <SelectItem key={event.id} value={event.id.toString()}>
-                  {event.name} - {new Date(event.date).toLocaleDateString()}
+                  {event.track.name} - {event.name} - {new Date(event.date).toLocaleDateString()}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -194,19 +175,21 @@ export default function ResultsContent() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Position</TableHead>
                   <TableHead>Driver</TableHead>
-                  <TableHead>Time</TableHead>
+                  <TableHead>Split Time</TableHead>
+                  <TableHead>Split Number</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {results.map((result) => (
-                  <TableRow key={result.id}>
-                    <TableCell>{result.position}</TableCell>
-                    <TableCell>{result.driver.name}</TableCell>
-                    <TableCell>{result.time}</TableCell>
-                  </TableRow>
-                ))}
+                {results
+                  .filter(result => result.division_id === Number(selectedDivision))
+                  .map((result) => (
+                    <TableRow key={result.id}>
+                      <TableCell>{result.driver.name}</TableCell>
+                      <TableCell>{result.split_time}</TableCell>
+                      <TableCell>{result.split_number}</TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           ) : (
